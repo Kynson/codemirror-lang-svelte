@@ -1,11 +1,16 @@
 {
-  "name": "@replit/codemirror-lang-svelte",
+  "name": "codemirror-lang-svelte",
   "description": "Svelte language support for CodeMirror6",
   "version": "6.0.0",
   "author": {
     "name": "Brian Pool",
     "email": "brian@repl.it"
   },
+  "contributors": [
+    {
+      "name": "Kynson Szetau"
+    }
+  ],
   "type": "module",
   "main": "dist/index.cjs",
   "exports": {
@@ -17,13 +22,13 @@
   "sideEffects": false,
   "license": "MIT",
   "scripts": {
-    "dev": "npm run build && run-p dev-cm dev-vite",
     "dev-vite": "vite ./dev",
     "dev-cm": "node ./dev/watch.cjs src/index.ts",
     "build": "cm-buildhelper src/index.ts",
     "test": "cm-runtests",
     "publish": "npm run build && npm publish",
-    "format": "prettier src/* --write --ignore-unknown"
+    "format": "prettier src/* --write --ignore-unknown",
+    "generate": "lezer-generator"
   },
   "peerDependencies": {
     "@codemirror/autocomplete": "^6.0.0",
@@ -40,7 +45,7 @@
   },
   "devDependencies": {
     "@codemirror/autocomplete": "^6.0.0",
-    "@codemirror/buildhelper": "^0.1.16",
+    "@codemirror/buildhelper": "^1.0.2",
     "@codemirror/lang-css": "^6.0.1",
     "@codemirror/lang-html": "^6.2.0",
     "@codemirror/lang-javascript": "^6.1.1",
@@ -53,13 +58,12 @@
     "@lezer/highlight": "^1.0.0",
     "@lezer/javascript": "^1.2.0",
     "@lezer/lr": "^1.0.0",
+    "@types/node": "^24.3.0",
     "codemirror": "^6.0.0",
-    "npm-run-all": "^4.1.5",
-    "prettier": "^2.8.0",
-    "vite": "^2.9.17"
+    "vite": "^7.0.0"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/replit/codemirror-lang-svelte.git"
+    "url": "https://github.com/Kynson/codemirror-lang-svelte.git"
   }
 }
