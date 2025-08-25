@@ -1,5 +1,11 @@
 @top Document { (entity | DoctypeDecl)* }
 
+kw<term> { @specialize[@name={term}]<identifier, term> }
+
+pfx<type> { @extend[@name=BlockPrefix]<BlockPrefix, type> }
+
+blk<type> { @specialize[@name=BlockType]<BlockType, type> }
+
 entity[@isGroup=Entity] {
   IfBlock |
   EachBlock |
@@ -8,6 +14,8 @@ entity[@isGroup=Entity] {
   RawHTMLBlock |
   DebugBlock |
   ConstBlock |
+  SnippetBlock |
+  RenderBlock |
   Interpolation |
   UnknownBlock |
   Text |
@@ -38,6 +46,10 @@ KeyBlock[group=Block] {
   KeyBlockOpen entity* KeyBlockClose
 }
 
+SnippetBlock[group=Block] {
+  SnippetBlockOpen entity* SnippetBlockClose
+}
+
 Element {
   OpenScriptTag ScriptText (CloseScriptTag | missingCloseTag) |
   OpenStyleTag StyleText (CloseStyleTag | missingCloseTag) |
@@ -54,168 +66,104 @@ TextareaText[group="TextContent Entity"] { textareaText* }
 
 Comment { commentStart commentContent* commentEnd }
 
-@skip { space } {
-  OpenTag[closedBy=CloseTag] {
-    StartTag elementName attr* EndTag
-  }
-
-  SelfClosingTag {
-    StartSelfClosingTag TagName attr* EndTag |
-    StartTag elementName attr* SelfClosingEndTag
-  }
-
-  MismatchedCloseTag {
-    MismatchedStartCloseTag elementName EndTag
-  }
-
-  NoMatchCloseTag[@name=CloseTag] {
-    NoMatchStartCloseTag elementName EndTag
-  }
-
-  CloseTag[openedBy=OpenTag] {
-    StartCloseTag elementName EndTag
-  }
-
-  OpenScriptTag[@name=OpenTag,closedBy=CloseTag] {
-    StartScriptTag TagName attr* EndTag
-  }
-
-  CloseScriptTag[@name=CloseTag,openedBy=OpenTag] {
-    StartCloseScriptTag TagName EndTag
-  }
-
-  OpenStyleTag[@name=OpenTag,closedBy=CloseTag] {
-    StartStyleTag TagName attr* EndTag
-  }
-
-  CloseStyleTag[@name=CloseTag,openedBy=OpenTag] {
-    StartCloseStyleTag TagName EndTag
-  }
-
-  OpenTextareaTag[@name=OpenTag,closedBy=CloseTag] {
-    StartTextareaTag TagName attr* EndTag
-  }
-
-  CloseTextareaTag[@name=CloseTag,openedBy=OpenTag] {
-    StartCloseTextareaTag TagName EndTag
-  }
-
-  attr {
-    DirectlyInterpolatedAttribute |
-    SpreadInterpolatedAttribute |
-    Directive |
-    StyleAttribute |
-    Attribute
-  }
-
-  DirectlyInterpolatedAttribute {
-    "{" (DirectlyInterpolatedAttributeValue { identifier })? "}"
-  }
-
-  SpreadInterpolatedAttribute {
-    "{" "..." LongExpression "}"
-  }
-
-  Directive {
-    directiveStart
-    ("|" Modifier)*
-    (Is (AttributeValue | UnquotedAttributeValue))?
-  }
-
-  StyleAttribute {
-    StyleAttributeName (Is (AttributeValue | UnquotedAttributeValue))?
-  }
-
-  Attribute {
-    AttributeName
-    ("|" Modifier)*
-    (Is (AttributeValue | UnquotedAttributeValue))?
-  }
-  
-  IfBlockOpen[group=BlockOpen,closedBy=IfBlockClose] {
-    "{" pfx<"#"> blk<"if"> LongExpression "}"
-  }
-  
-  IfBlockClose[group=BlockClose,openedBy=IfBlockOpen] {
-    "{" pfx<"/"> blk<"if"> "}"
-  }
-  
-  ElseBlock[group=BlockInline] {
-    "{" pfx<":"> blk<"else"> (kw<"if"> LongExpression)? "}"
-  }
-
-  EachBlockOpen[group=BlockOpen,closedBy=EachBlockClose] {
-    "{" pfx<"#"> blk<"each">
-    ShortExpression
-    kw<"as">
-    ShortExpression
-    (
-      ("(" LongExpression ")") |
-      ("," Variable? ("(" LongExpression ")")?)
-    )?
-    "}"
-  }
-  
-  EachBlockClose[group=BlockClose,openedBy=EachBlockOpen] {
-    "{" pfx<"/"> blk<"each"> "}"
-  }
-
-  AwaitBlockOpen[group=BlockOpen,closedBy=AwaitBlockClose] {
-    "{" pfx<"#"> blk<"await">
-    ShortExpression
-    ((kw<"then"> | kw<"catch">) ShortExpression)?
-    "}"
-  }
-  
-  AwaitBlockClose[group=BlockClose,closedBy=AwaitBlockOpen] {
-    "{" pfx<"/"> blk<"await"> "}"
-  }
-  
-  ThenBlock[group=BlockInline] {
-    "{" pfx<":"> blk<"then"> Variable? "}"
-  }
-  
-  CatchBlock[group=BlockInline] {
-    "{" pfx<":"> blk<"catch"> Variable? "}"
-  }
-
-  KeyBlockOpen[group=BlockOpen,closedBy=KeyBlockClose] {
-    "{" pfx<"#"> blk<"key"> LongExpression "}"
-  }
-  
-  KeyBlockClose[group=BlockClose,openedBy=KeyBlockOpen] {
-    "{" pfx<"/"> blk<"key"> "}"
-  }
-
-  RawHTMLBlock[group=BlockInline] {
-    "{" pfx<"@"> blk<"html"> LongExpression "}"
-  }
-
-  DebugBlock[group=BlockInline] {
-    "{" pfx<"@"> blk<"debug"> Variable ("," Variable)* "}"
-  }
-
-  ConstBlock[group=BlockInline] {
-    "{" pfx<"@"> blk<"const"> LongExpression "}"
-  }
-
-  UnknownBlock[group=BlockInline] {
-    "{"
-    BlockPrefix
-    BlockType
-    UnknownBlockContent?
-    "}"
-  }
-  
-  Interpolation {
-    "{" LongExpression "}"
-  }
+IfBlockOpen[group=BlockOpen,closedBy=IfBlockClose] {
+  "{" pfx<"#"> blk<"if"> space+ LongExpression "}"
 }
 
-elementName {
-  TagName |
-  ComponentName |
-  SvelteElementName
+IfBlockClose[group=BlockClose,openedBy=IfBlockOpen] {
+  "{" pfx<"/"> blk<"if"> "}"
+}
+
+ElseBlock[group=BlockInline] {
+  "{" pfx<":"> blk<"else"> (space+ kw<"if"> space+ LongExpression)? "}"
+}
+
+EachBlockOpen[group=BlockOpen,closedBy=EachBlockClose] {
+  "{"
+    pfx<"#"> blk<"each">
+    space+
+    ShortExpression
+    space+
+    kw<"as">
+    space+
+    ShortExpression
+    (
+      space+
+      ("(" LongExpression ")") |
+      ("," (space+ Variable)? (space+ "(" LongExpression ")")?)
+    )?
+    space*
+  "}"
+}
+
+EachBlockClose[group=BlockClose,openedBy=EachBlockOpen] {
+  "{" pfx<"/"> blk<"each"> "}"
+}
+
+AwaitBlockOpen[group=BlockOpen,closedBy=AwaitBlockClose] {
+  "{"
+    pfx<"#"> blk<"await">
+    space+
+    ShortExpression
+    (space+ (kw<"then"> | kw<"catch">) space+ ShortExpression)?
+  "}"
+}
+
+AwaitBlockClose[group=BlockClose,closedBy=AwaitBlockOpen] {
+  "{" pfx<"/"> blk<"await"> "}"
+}
+
+ThenBlock[group=BlockInline] {
+  "{" pfx<":"> blk<"then"> (space+ Variable space*)? "}"
+}
+
+CatchBlock[group=BlockInline] {
+  "{" pfx<":"> blk<"catch"> (space+ Variable space*)? "}"
+}
+
+KeyBlockOpen[group=BlockOpen,closedBy=KeyBlockClose] {
+  "{" pfx<"#"> blk<"key"> space+ LongExpression "}"
+}
+
+KeyBlockClose[group=BlockClose,openedBy=KeyBlockOpen] {
+  "{" pfx<"/"> blk<"key"> "}"
+}
+
+SnippetBlockOpen[group=BlockOpen,closedBy=SnippetBlockClose] {
+  "{" pfx<"#"> blk<"snippet"> space+ SnippetIdentifier { identifier } "(" space* (Variable space* ("," space* Variable)*)* ")" space* "}"
+}
+
+SnippetBlockClose[group=BlockClose,openedBy=SnippetBlockOpen] {
+  "{" pfx<"/"> blk<"snippet"> "}"
+}
+
+RawHTMLBlock {
+  "{" pfx<"@"> blk<"html"> LongExpression "}"
+}
+
+DebugBlock {
+  "{" pfx<"@"> blk<"debug"> space+ Variable space* ("," space* Variable)* "}"
+}
+
+ConstBlock {
+  "{" pfx<"@"> blk<"const"> LongExpression "}"
+}
+
+RenderBlock {
+  "{" pfx<"@"> blk<"render"> LongExpression "}"
+}
+
+UnknownBlock {
+  "{"
+  BlockPrefix
+  BlockType
+  space*
+  UnknownBlockContent?
+  "}"
+}
+
+Interpolation {
+  "{" LongExpression "}"
 }
 
 SvelteElementName {
@@ -266,24 +214,116 @@ attributeValueContentEntity {
   InvalidEntity
 }
 
-@context elementContext from "./html-tokens.js"
+@precedence { first, last }
 
-@external tokens scriptTokens from "./html-tokens.js" {
+elementName {
+  TagName |
+  ComponentName |
+  SvelteElementName
+}
+
+OpenTag[closedBy=CloseTag] {
+  StartTag space* !last elementName (!first space+ attr)* space* EndTag
+}
+
+SelfClosingTag {
+  (StartTag space* !last elementName (!first space+ attr)* space* SelfClosingEndTag) |
+  (StartSelfClosingTag space* !last TagName (!first space+ attr)* space* (SelfClosingEndTag | EndTag))
+}
+
+MismatchedCloseTag {
+  MismatchedStartCloseTag space* elementName space* EndTag
+}
+
+NoMatchCloseTag[@name=CloseTag] {
+  NoMatchStartCloseTag space* elementName space* EndTag
+}
+
+CloseTag[openedBy=OpenTag] {
+  StartCloseTag space* elementName space* EndTag
+}
+
+OpenScriptTag[@name=OpenTag,closedBy=CloseTag] {
+  StartScriptTag space* !last TagName !first (space+ attr)* EndTag
+}
+
+CloseScriptTag[@name=CloseTag,openedBy=OpenTag] {
+  StartCloseScriptTag space* TagName space* EndTag
+}
+
+OpenStyleTag[@name=OpenTag,closedBy=CloseTag] {
+  StartStyleTag space* !last TagName !first (space+ attr)* EndTag
+}
+
+CloseStyleTag[@name=CloseTag,openedBy=OpenTag] {
+  StartCloseStyleTag space* TagName space* EndTag
+}
+
+OpenTextareaTag[@name=OpenTag,closedBy=CloseTag] {
+  StartTextareaTag space* !last TagName !first (space+ attr)* space* EndTag
+}
+
+CloseTextareaTag[@name=CloseTag,openedBy=OpenTag] {
+  StartCloseTextareaTag space* TagName space* EndTag
+}
+
+attr {
+  DirectlyInterpolatedAttribute |
+  SpreadInterpolatedAttribute |
+  Directive |
+  StyleAttribute |
+  Attribute |
+  Attachment
+}
+
+DirectlyInterpolatedAttribute {
+  "{" space* (DirectlyInterpolatedAttributeValue { identifier })? !first space* !last "}"
+}
+
+SpreadInterpolatedAttribute {
+  "{" space* "..." LongExpression "}"
+}
+
+Attribute {
+  !first AttributeName
+  ("|" Modifier)*
+  !last space*
+  (!first Is space* (AttributeValue | UnquotedAttributeValue))?
+}
+
+Directive {
+  !first directiveStart
+  ("|" Modifier)*
+  !last space*
+  (!first Is space* (AttributeValue | UnquotedAttributeValue))?
+}
+
+StyleAttribute {
+  StyleAttributeName (!last space* !first Is space* (AttributeValue | UnquotedAttributeValue))?
+}
+
+Attachment {
+  "{" pfx<"@"> blk<"attach"> space+ LongExpression "}"
+}
+
+@context elementContext from "./html-tokens.ts"
+
+@external tokens scriptTokens from "./html-tokens.ts" {
   scriptText
   StartCloseScriptTag[@name=StartCloseTag,closedBy=EndTag]
 }
 
-@external tokens styleTokens from "./html-tokens.js" {
+@external tokens styleTokens from "./html-tokens.ts" {
   styleText
   StartCloseStyleTag[@name=StartCloseTag,closedBy=EndTag]
 }
 
-@external tokens textareaTokens from "./html-tokens.js" {
+@external tokens textareaTokens from "./html-tokens.ts" {
   textareaText
   StartCloseTextareaTag[@name=StartCloseTag,closedBy=EndTag]
 }
 
-@external tokens tagStart from "./html-tokens.js" {
+@external tokens tagStart from "./html-tokens.ts" {
   StartTag[closedBy="EndTag SelfClosingEndTag"],
   StartScriptTag[@name=StartTag,closedBy=EndTag],
   StartStyleTag[@name=StartTag,closedBy=EndTag],
@@ -296,23 +336,17 @@ attributeValueContentEntity {
   IncompleteCloseTag
 }
 
-@external tokens commentContent from "./tokens.js" {
+@external tokens commentContent from "./tokens.ts" {
   commentContent
 }
 
-@external tokens longExpression from "./tokens.js" {
+@external tokens longExpression from "./tokens.ts" {
   LongExpression
 }
 
-@external tokens shortExpression from "./tokens.js" {
+@external tokens shortExpression from "./tokens.ts" {
   ShortExpression
 }
-
-kw<term> { @specialize[@name={term}]<identifier, term> }
-
-pfx<type> { @extend[@name=BlockPrefix]<BlockPrefix, type> }
-
-blk<type> { @specialize[@name=BlockType]<BlockType, type> }
 
 @tokens {
   "\""[@name=DoubleQuote, openedBy="\"", closedBy="\""]
@@ -340,12 +374,12 @@ blk<type> { @specialize[@name=BlockType]<BlockType, type> }
 
   UnknownBlockContent { ![}]+ }
 
-  @precedence { UnknownBlockContent space }
+  @precedence { UnknownBlockContent, space }
 
   commentStart { "<!--" }
   commentEnd { "-->" }
 
-  EndTag[openedBy="StartTag StartCloseTag"] { "/"? ">" }
+  EndTag[openedBy="StartTag StartCloseTag StartSelfClosingTag"] { "/"? ">" }
   SelfClosingEndTag[openedBy=StartTag] { "/>" }
   @precedence { SelfClosingEndTag, EndTag }
 
@@ -384,7 +418,7 @@ blk<type> { @specialize[@name=BlockType]<BlockType, type> }
   Modifier { attributeChar+ }
   DirectiveTarget { attributeChar+ }
 
-  @precedence { StyleAttributeName AttributeName }
+  @precedence { StyleAttributeName, AttributeName }
 
   UnquotedAttributeValue { ![ \t\n\r\u000C=<>"'`{] ![ \t\n\r\u000C=<>"'`]* }
 
