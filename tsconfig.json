@@ -8,5 +8,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src", "dev"]
+  "include": ["src", "dev", "vite.config.js", "src/*.grammar"]
 }
