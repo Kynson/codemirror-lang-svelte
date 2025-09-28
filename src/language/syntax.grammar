@@ -82,7 +82,7 @@ EachBlockOpen[group=BlockOpen,closedBy=EachBlockClose] {
   "{"
     pfx<"#"> blk<"each">
     space+
-    ShortExpression
+    AsTerminatedLongExpression
     space+
     kw<"as">
     space+
@@ -344,6 +344,10 @@ Attachment {
   LongExpression
 }
 
+@external tokens asTerminatedLongExpression from "./tokens.ts" {
+  AsTerminatedLongExpression
+}
+
 @external tokens shortExpression from "./tokens.ts" {
   ShortExpression
 }
@@ -411,7 +415,7 @@ Attachment {
 
   SvelteElementType { @asciiLetter+ }
 
-  attributeChar { ![\u0000-\u0020\u007F-\u009F"'>/=|:{\uFDD0-\uFDEF\uFFFE\uFFFF] }
+  attributeChar { ![\u0000-\u0020\u007F-\u009F"'<>/=|:{\uFDD0-\uFDEF\uFFFE\uFFFF] }
 
   AttributeName { attributeChar+ }
   StyleAttributeName { "--" attributeChar+ }

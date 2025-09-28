@@ -1,6 +1,7 @@
 import {
   ShortExpression,
   LongExpression,
+  AsTerminatedLongExpression,
   ScriptText,
   StyleText,
   TextareaText,
@@ -10,14 +11,14 @@ import { parser as javascriptParser } from '@lezer/javascript';
 
 import type { Input, Parser, SyntaxNode, SyntaxNodeRef } from '@lezer/common';
 
-export type NestedLanguageConfig = {
+export interface NestedLanguageConfig {
   tag: 'script' | 'style' | 'textarea';
-  attributeMatcher?: (attrs: { [attr: string]: string }) => boolean;
+  attributeMatcher?: (attrs: Record<string, string>) => boolean;
   parser: Parser;
-};
+}
 
 function getAttributes(elementNode: SyntaxNode, input: Input) {
-  const extractedAttributes = Object.create(null);
+  const extractedAttributes = Object.create(null) as Record<string, string>;
   const attributesNodes =
     // The firstChild is the open tag node
     elementNode.firstChild?.getChildren('Attributes') ?? [];
@@ -25,7 +26,7 @@ function getAttributes(elementNode: SyntaxNode, input: Input) {
   for (const attribute of attributesNodes) {
     const name = attribute.getChild('AttributeName');
     const value =
-      attribute.getChild('AttributeValue') ||
+      attribute.getChild('AttributeValue') ??
       attribute.getChild('UnquotedAttributeValue');
 
     if (!name) {
@@ -74,23 +75,12 @@ export function configureNesting(tags: NestedLanguageConfig[]) {
   const style: NestedLanguageConfig[] = [];
   const textarea: NestedLanguageConfig[] = [];
 
-  for (let tag of tags) {
+  for (const tag of tags) {
     const { tag: tagName } = tag;
 
+    // Validation is enforced by the type system
     const array =
-      tagName == 'script'
-        ? script
-        : tagName == 'style'
-        ? style
-        : tagName == 'textarea'
-        ? textarea
-        : null;
-
-    if (!array) {
-      throw new RangeError(
-        'Only script, style, and textarea tags can host nested parsers'
-      );
-    }
+      tagName === 'script' ? script : tagName === 'style' ? style : textarea;
 
     array.push(tag);
   }
@@ -98,7 +88,11 @@ export function configureNesting(tags: NestedLanguageConfig[]) {
   return parseMixed((nodeReference, input) => {
     const id = nodeReference.type.id;
 
-    if (id === LongExpression || id === ShortExpression) {
+    if (
+      id === LongExpression ||
+      id === AsTerminatedLongExpression ||
+      id === ShortExpression
+    ) {
       return { parser: expressionParser };
     }
     if (id === ScriptText) {
