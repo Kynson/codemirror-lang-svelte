@@ -8,6 +8,9 @@ import {
   sveltekitAttributes,
   svelteEvents,
   runes,
+  logicBlocks,
+  specialTags,
+  attributeLikeSpecialTags,
 } from './data-provider';
 
 import type {
@@ -18,33 +21,23 @@ import type {
 import type { SyntaxNode } from '@lezer/common';
 import type { Info } from './data-provider';
 
-const logicBlockSnippets = [
-  snippetCompletion('#if ${}}\n\n{/if', { label: '#if', type: 'keyword' }),
-  snippetCompletion('#each ${} as }\n\n{/each', {
-    label: '#each',
-    type: 'keyword',
-  }),
-  snippetCompletion('#await ${} then }\n\n{/await', {
-    label: '#await then',
-    type: 'keyword',
-  }),
-  snippetCompletion('#await ${}}\n\n{:then }\n\n{/await', {
-    label: '#await :then',
-    type: 'keyword',
-  }),
-  snippetCompletion('#key ${}}\n\n{/key', { label: '#key', type: 'keyword' }),
-];
+const logicBlockSnippets = logicBlocks.map(({ snippet, label }) => {
+  return snippetCompletion(snippet, { label, type: 'keyword' });
+});
 
-const specialTagSnippets = [
-  snippetCompletion('@html ${}', { label: '@html', type: 'keyword' }),
-  snippetCompletion('@debug ${}', { label: '@debug', type: 'keyword' }),
-  snippetCompletion('@const ${}', { label: '@const', type: 'keyword' }),
-  snippetCompletion('@render ${}', { label: '@render', type: 'keyword' }),
-];
+const specialTagSnippets = specialTags.map(({ snippet, label }) => {
+  return snippetCompletion(snippet, { label, type: 'keyword' });
+});
 
-const attributeLikeSpecialTagSnippets = [
-  snippetCompletion('@attach ${}', { label: '@attach', type: 'keyword' }),
-];
+const attributeLikeSpecialTagSnippets = attributeLikeSpecialTags.map(
+  ({ snippet, label }) => {
+    return snippetCompletion(snippet, { label, type: 'keyword' });
+  }
+);
+
+const sveltePrefiexedTags = svelteTags.filter((tags) =>
+  tags.name.startsWith('svelte:')
+);
 
 function completionForBlock(context: CompletionContext, node: SyntaxNode) {
   const prefix = context.state.doc.sliceString(node.from, node.from + 1);
@@ -62,71 +55,6 @@ function completionForBlock(context: CompletionContext, node: SyntaxNode) {
     to,
   };
 
-  // if (prefix === '/') {
-  //   const completion = (label: string) => ({
-  //     ...completionBase,
-  //     options: [{ label, type }],
-  //     validFor: /^\/\w*$/,
-  //   });
-
-  //   if (parent?.name === 'EachBlockClose' || block?.name === 'EachBlock') {
-  //     return completion('/each');
-  //   }
-
-  //   if (parent?.name === 'IfBlockClose' || block?.name === 'IfBlock') {
-  //     return completion('/if');
-  //   }
-  //   if (
-  //     parent?.name === 'AwaitBlockClose' ||
-  //     block?.name === 'AwaitBlock'
-  //   ) {
-  //     return completion('/await');
-  //   }
-
-  //   if (parent?.name === 'KeyBlockClose' || block?.name === 'KeyBlock') {
-  //     return completion('/key');
-  //   }
-  // }
-
-  // if (prefix === ':') {
-  //   const completion = (options: Completion[]) => ({
-  //     ...completionBase,
-  //     options,
-  //     validFor: /^\:\w*$/,
-  //   });
-
-  //   if (parent?.name === 'ElseBlock' || block?.name === 'IfBlock') {
-  //     return completion([
-  //       { label: ':else', type },
-  //       { label: ':else if ', type },
-  //     ]);
-  //   }
-
-  //   if (parent?.name === 'ThenBlock' || block?.name === 'AwaitBlock') {
-  //     return completion([
-  //       { label: ':then', type },
-  //       { label: ':catch', type },
-  //     ]);
-  //   }
-  // }
-
-  // if (prefix === '#') {
-  //   return { from, to, options: logicBlockSnippets, validFor: /^#(\w)*$/ };
-  // }
-
-  // if (prefix === '@') {
-  //   const grandParentName = node.parent?.parent?.name;
-  //   const isInsideTag =
-  //     grandParentName === 'SelfClosingTag' || grandParentName === 'OpenTag';
-
-  //   return {
-  //     ...completionBase,
-  //     options: isInsideTag
-  //       ? attributeLikeSpecialTagSnippets
-  //       : specialTagSnippets,
-  //     validFor: /^@(\w)*$/,
-  //   };
-  // }
   switch (prefix) {
     case '/': {
       const completion = (label: string) => ({
@@ -156,7 +84,7 @@ function completionForBlock(context: CompletionContext, node: SyntaxNode) {
       const completion = (options: Completion[]) => ({
         ...completionBase,
         options,
-        validFor: /^\:\w*$/,
+        validFor: /^:\w*$/,
       });
 
       if (parent?.name === 'ElseBlock' || block?.name === 'IfBlock') {
@@ -218,15 +146,17 @@ const optionsForSveltekitAttributes = sveltekitAttributes.map((attr) => ({
   type: 'keyword',
 }));
 
-const optionsForSveltekitAttrValues = sveltekitAttributes.reduce<
-  Record<string, Completion[]>
->((prev, cur) => {
-  prev[cur.name] = cur.values.map((value) => ({
-    label: value.name,
-    type: 'keyword',
-  }));
-  return prev;
-}, {});
+const optionsForSveltekitAttrValues = sveltekitAttributes.reduce((map, cur) => {
+  map.set(
+    cur.name,
+    cur.values.map((value) => ({
+      label: value.name,
+      type: 'keyword',
+    }))
+  );
+
+  return map;
+}, new Map<string, Completion[]>());
 
 function snippetForAttribute(attributes: Info[]) {
   return attributes.map((attr) =>
@@ -285,7 +215,7 @@ function completionForSveltekitAttrValues(
   node: SyntaxNode,
   attr: string
 ) {
-  const options = optionsForSveltekitAttrValues[attr];
+  const options = optionsForSveltekitAttrValues.get(attr);
   if (options) {
     return {
       from: node.name === 'AttributeValueContent' ? node.from : node.from + 1,
@@ -298,35 +228,68 @@ function completionForSveltekitAttrValues(
   return null;
 }
 
-export function completionForMarkup(context: CompletionContext) {
+function completionForSvelteTags(node: SyntaxNode) {
+  const isTagName = node.name === 'TagName';
+
+  return {
+    from: isTagName ? node.from : node.from - 'svelte:'.length,
+    options: sveltePrefiexedTags.map(({ name }) => ({
+      label: name,
+      type: 'keyword',
+    })),
+    validFor: isTagName ? /^sve\w*:?$/ : /^svelte:\w*$/,
+  };
+}
+
+export function completionForMarkup(
+  context: CompletionContext
+): CompletionResult | null {
   const nodeBefore = syntaxTree(context.state).resolveInner(context.pos, -1);
 
   if (nodeBefore.name === 'BlockPrefix') {
     return completionForBlock(context, nodeBefore);
-  } else if (nodeBefore.prevSibling?.name === 'BlockPrefix') {
-    return completionForBlock(context, nodeBefore.prevSibling);
-  } else if (nodeBefore.name === 'AttributeName') {
-    return completionForAttributes(context, nodeBefore);
-  } else if (
-    nodeBefore.name === 'DirectiveOn' ||
-    nodeBefore.name === 'DirectiveBind' ||
-    nodeBefore.name === 'DirectiveTarget'
-  ) {
-    if (nodeBefore.parent) {
-      return completionForAttributes(context, nodeBefore.parent);
-    }
-  } else if (nodeBefore.parent?.name === 'AttributeValue') {
-    if (nodeBefore.parent?.parent?.firstChild) {
-      const attrNameNode = nodeBefore.parent.parent.firstChild;
-      const attrName = context.state.doc.sliceString(
-        attrNameNode.from,
-        attrNameNode.to
-      );
+  }
 
-      if (attrName.startsWith('data-sveltekit-')) {
-        return completionForSveltekitAttrValues(context, nodeBefore, attrName);
-      }
+  if (nodeBefore.prevSibling?.name === 'BlockPrefix') {
+    return completionForBlock(context, nodeBefore.prevSibling);
+  }
+
+  if (nodeBefore.name === 'AttributeName') {
+    return completionForAttributes(context, nodeBefore);
+  }
+
+  if (
+    (nodeBefore.name === 'DirectiveOn' ||
+      nodeBefore.name === 'DirectiveBind' ||
+      nodeBefore.name === 'DirectiveTarget') &&
+    nodeBefore.parent
+  ) {
+    return completionForAttributes(context, nodeBefore.parent);
+  }
+
+  if (
+    nodeBefore.parent?.name === 'AttributeValue' &&
+    nodeBefore.parent.parent?.firstChild
+  ) {
+    const attrNameNode = nodeBefore.parent.parent.firstChild;
+    const attrName = context.state.doc.sliceString(
+      attrNameNode.from,
+      attrNameNode.to
+    );
+
+    if (attrName.startsWith('data-sveltekit-')) {
+      return completionForSveltekitAttrValues(context, nodeBefore, attrName);
     }
+  }
+
+  if (
+    (nodeBefore.name === 'TagName' &&
+      context.state
+        .sliceDoc(nodeBefore.from, nodeBefore.to)
+        .startsWith('sve')) ||
+    nodeBefore.name === 'SvelteElementType'
+  ) {
+    return completionForSvelteTags(nodeBefore);
   }
 
   return null;
@@ -346,7 +309,7 @@ const options = runes.map(({ snippet, test }, i) => ({
 export function completionForJavascript(
   context: CompletionContext
 ): CompletionResult | null | false {
-  let node = syntaxTree(context.state).resolveInner(context.pos, -1);
+  const node = syntaxTree(context.state).resolveInner(context.pos, -1);
 
   if (node.name === 'String' && node.parent?.name === 'ImportDeclaration') {
     const modules = [
@@ -402,7 +365,7 @@ export function completionForJavascript(
       }
     }
 
-    const open = context.matchBefore(/\$[\w\.]*/);
+    const open = context.matchBefore(/\$[\w.]*/);
     if (!open) {
       return null;
     }
