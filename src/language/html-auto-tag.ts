@@ -9,7 +9,7 @@ import { svelteLanguage } from './svelte-language';
 import type { SyntaxNode } from '@lezer/common';
 import type { Text } from '@codemirror/state';
 
-function elementName(
+function getElementName(
   doc: Text,
   tree: SyntaxNode | null | undefined,
   max = doc.length
@@ -17,13 +17,17 @@ function elementName(
   if (!tree) {
     return '';
   }
-  let tag = tree.firstChild;
-  let name =
+
+  const tag = tree.firstChild;
+  const nameNode =
     tag &&
-    (tag.getChild('TagName') ||
-      tag.getChild('ComponentName') ||
+    (tag.getChild('TagName') ??
+      tag.getChild('ComponentName') ??
       tag.getChild('SvelteElementName'));
-  return name ? doc.sliceString(name.from, Math.min(name.to, max)) : '';
+
+  return nameNode
+    ? doc.sliceString(nameNode.from, Math.min(nameNode.to, max))
+    : '';
 }
 
 export const autoCloseTags = EditorView.inputHandler.of(
@@ -33,13 +37,15 @@ export const autoCloseTags = EditorView.inputHandler.of(
       view.state.readOnly ||
       from !== to ||
       (text !== '>' && text !== '/') ||
+      // Note that this will disable auto closing using "/" inside script/style tags
       !svelteLanguage.isActiveAt(view.state, from, -1)
     ) {
       return false;
     }
-    let { state } = view;
-    let changes = state.changeByRange((range) => {
-      let { head } = range;
+
+    const { state } = view;
+    const changes = state.changeByRange((range) => {
+      const { head } = range;
       let around = syntaxTree(state).resolveInner(head, -1);
       let name: string;
 
@@ -49,40 +55,51 @@ export const autoCloseTags = EditorView.inputHandler.of(
         around.name === 'SvelteElementName' ||
         around.name === 'StartTag'
       ) {
+        // The above Token must have a parent node as they are inside a Document/ OpenTag
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         around = around.parent!;
       }
 
-      if (text === '>' && around.name === 'OpenTag') {
-        if (
-          around.parent?.lastChild?.name !== 'CloseTag' &&
-          (name = elementName(state.doc, around.parent, head))
-        ) {
-          let hasRightBracket =
-            view.state.doc.sliceString(head, head + 1) === '>';
-          let insert = `${hasRightBracket ? '' : '>'}</${name}>`;
-          return {
-            range: EditorSelection.cursor(head + 1),
-            changes: { from: head + (hasRightBracket ? 1 : 0), insert },
-          };
-        }
-      } else if (text === '/' && around.name === 'OpenTag') {
-        let empty = around.parent,
-          base = empty?.parent;
-        if (
-          empty!.from == head - 1 &&
-          base!.lastChild?.name != 'CloseTag' &&
-          (name = elementName(state.doc, base, head))
-        ) {
-          let hasRightBracket =
-            view.state.doc.sliceString(head, head + 1) === '>';
-          let insert = `/${name}${hasRightBracket ? '' : '>'}`;
-          let pos = head + insert.length + (hasRightBracket ? 1 : 0);
-          return {
-            range: EditorSelection.cursor(pos),
-            changes: { from: head, insert },
-          };
-        }
+      name = getElementName(state.doc, around.parent, head);
+      const nextChar = state.doc.sliceString(head, head + 1);
+
+      if (
+        text === '>' &&
+        around.name === 'OpenTag' &&
+        // Ensure there is no closing tag already
+        (around.parent?.lastChild?.name !== 'CloseTag' || nextChar !== '<') &&
+        name
+      ) {
+        const hasRightBracket = nextChar === '>';
+        const insert = `${hasRightBracket ? '' : '>'}</${name}>`;
+        return {
+          range: EditorSelection.cursor(head + 1),
+          changes: { from: head + (hasRightBracket ? 1 : 0), insert },
+        };
       }
+
+      const empty = around.parent;
+      const base = empty?.parent;
+      name = getElementName(state.doc, base, head);
+
+      if (
+        text === '/' &&
+        around.name === 'OpenTag' &&
+        empty?.from === head - 1 &&
+        base?.lastChild?.name !== 'CloseTag' &&
+        name
+      ) {
+        const hasRightBracket =
+          view.state.doc.sliceString(head, head + 1) === '>';
+        const insert = `/${name}${hasRightBracket ? '' : '>'}`;
+        const pos = head + insert.length + (hasRightBracket ? 1 : 0);
+
+        return {
+          range: EditorSelection.cursor(pos),
+          changes: { from: head, insert },
+        };
+      }
+
       return { range };
     });
 

@@ -21,26 +21,6 @@ import {
 
 import type { InputStream } from '@lezer/lr';
 
-// const selfClosers: Record<string, boolean> = {
-//   area: true,
-//   base: true,
-//   br: true,
-//   col: true,
-//   command: true,
-//   embed: true,
-//   frame: true,
-//   hr: true,
-//   img: true,
-//   input: true,
-//   keygen: true,
-//   link: true,
-//   meta: true,
-//   param: true,
-//   source: true,
-//   track: true,
-//   wbr: true,
-//   menuitem: true,
-// };
 const selfClosers = new Set([
   'area',
   'base',
@@ -72,20 +52,6 @@ const selfClosers = new Set([
   'use',
 ]);
 
-// const implicitlyClosed: Record<string, boolean> = {
-//   dd: true,
-//   li: true,
-//   optgroup: true,
-//   option: true,
-//   p: true,
-//   rp: true,
-//   rt: true,
-//   tbody: true,
-//   td: true,
-//   tfoot: true,
-//   th: true,
-//   tr: true,
-// };
 const implicitlyClosed = new Set([
   'dd',
   'li',
@@ -101,50 +67,6 @@ const implicitlyClosed = new Set([
   'tr',
 ]);
 
-// const closeOnOpen: Record<string, boolean | Record<string, boolean>> = {
-//   dd: { dd: true, dt: true },
-//   dt: { dd: true, dt: true },
-//   li: { li: true },
-//   option: { option: true, optgroup: true },
-//   optgroup: { optgroup: true },
-//   p: {
-//     address: true,
-//     article: true,
-//     aside: true,
-//     blockquote: true,
-//     dir: true,
-//     div: true,
-//     dl: true,
-//     fieldset: true,
-//     footer: true,
-//     form: true,
-//     h1: true,
-//     h2: true,
-//     h3: true,
-//     h4: true,
-//     h5: true,
-//     h6: true,
-//     header: true,
-//     hgroup: true,
-//     hr: true,
-//     menu: true,
-//     nav: true,
-//     ol: true,
-//     p: true,
-//     pre: true,
-//     section: true,
-//     table: true,
-//     ul: true,
-//   },
-//   rp: { rp: true, rt: true },
-//   rt: { rp: true, rt: true },
-//   tbody: { tbody: true, tfoot: true },
-//   td: { td: true, th: true },
-//   tfoot: { tbody: true },
-//   th: { td: true, th: true },
-//   thead: { tbody: true, tfoot: true },
-//   tr: { tr: true },
-// };
 const closeOnOpen = new Map([
   ['dd', new Set(['dd', 'dt'])],
   ['dt', new Set(['dd', 'dt'])],
@@ -230,25 +152,19 @@ function tagNameAfter(input: InputStream, offset: number) {
   cachedPosition = position;
   cachedName = name;
 
-  // return name
-  //   ? name.toLowerCase()
-  //   : next === questionMark || next === bang
-  //   ? undefined
-  //   : null;
   if (name) {
     // Preserve case for Svelte components
     return /^[A-Z]/.test(name) ? name : name.toLowerCase();
   }
 
-  return next === questionMark || next === bang ? undefined : null;
+  return next === QUESTION_MARK_CHAR || next === BANK_CHAR ? undefined : null;
 }
 
-const lessThan = 60,
-  greaterThan = 62,
-  slash = 47,
-  questionMark = 63,
-  bang = 33,
-  dash = 45;
+const LESS_THAN_CHAR = 60;
+const GREATER_THAN_CHAR = 62;
+const SLASH_CHAR = 47;
+const QUESTION_MARK_CHAR = 63;
+const BANK_CHAR = 33;
 
 class ElementContext {
   public name: string;
@@ -270,11 +186,11 @@ const startTagTerms = new Set([
   StartTextareaTag,
 ]);
 
-export const elementContext = new ContextTracker<ElementContext>({
-  start: new ElementContext('', null),
+export const elementContext = new ContextTracker<ElementContext | null>({
+  start: null,
   shift(context, term, _stack, input) {
     return startTagTerms.has(term)
-      ? new ElementContext(tagNameAfter(input, 1) || '', context)
+      ? new ElementContext(tagNameAfter(input, 1) ?? '', context)
       : context;
   },
   reduce(context, term) {
@@ -283,9 +199,9 @@ export const elementContext = new ContextTracker<ElementContext>({
       : context;
   },
   reuse(context, node, _stack, input) {
-    let type = node.type.id;
+    const type = node.type.id;
     return type === StartTag || type === OpenTag
-      ? new ElementContext(tagNameAfter(input, 1) || '', context)
+      ? new ElementContext(tagNameAfter(input, 1) ?? '', context)
       : context;
   },
   hash(context) {
@@ -297,7 +213,7 @@ export const elementContext = new ContextTracker<ElementContext>({
 export const tagStart = new ExternalTokenizer(
   (input, stack) => {
     const next: number = input.next;
-    if (next !== lessThan) {
+    if (next !== LESS_THAN_CHAR) {
       // End of file, close any open tags
       if (next < 0 && stack.context) {
         input.acceptToken(missingCloseTag);
@@ -309,7 +225,7 @@ export const tagStart = new ExternalTokenizer(
     input.advance();
 
     const advancedPosition = input.next;
-    const isClosed = advancedPosition === slash;
+    const isClosed = advancedPosition === SLASH_CHAR;
 
     if (isClosed) {
       input.advance();
@@ -321,49 +237,73 @@ export const tagStart = new ExternalTokenizer(
       return;
     }
     if (!name) {
-      return input.acceptToken(isClosed ? IncompleteCloseTag : StartTag);
+      input.acceptToken(isClosed ? IncompleteCloseTag : StartTag);
+
+      return;
     }
 
-    let parent: string = stack.context ? stack.context.name : null;
+    const parent = stack.context
+      ? (stack.context as ElementContext).name
+      : null;
+
     if (isClosed) {
       if (name === parent) {
-        return input.acceptToken(StartCloseTag);
+        input.acceptToken(StartCloseTag);
+
+        return;
       }
       if (parent && implicitlyClosed.has(parent)) {
-        return input.acceptToken(missingCloseTag, -2);
+        input.acceptToken(missingCloseTag, -2);
+
+        return;
       }
       // if (stack.dialectEnabled(Dialect_noMatch)) return input.acceptToken(NoMatchStartCloseTag)
-      for (let context = stack.context; context; context = context.parent) {
+      for (
+        let context = stack.context as ElementContext | null;
+        context;
+        context = context.parent
+      ) {
         if (context.name === name) {
           return;
         }
       }
+
       input.acceptToken(MismatchedStartCloseTag);
+
+      return;
+    }
+
+    if (name === 'script') {
+      input.acceptToken(StartScriptTag);
+
+      return;
+    }
+    if (name === 'style') {
+      input.acceptToken(StartStyleTag);
+
+      return;
+    }
+    if (name === 'textarea') {
+      input.acceptToken(StartTextareaTag);
+
+      return;
+    }
+    if (selfClosers.has(name)) {
+      input.acceptToken(StartSelfClosingTag);
+
+      return;
+    }
+    if (parent && closeOnOpen.get(parent)?.has(name)) {
+      input.acceptToken(missingCloseTag, -1);
     } else {
-      if (name === 'script') {
-        return input.acceptToken(StartScriptTag);
-      }
-      if (name === 'style') {
-        return input.acceptToken(StartStyleTag);
-      }
-      if (name === 'textarea') {
-        return input.acceptToken(StartTextareaTag);
-      }
-      if (selfClosers.has(name)) {
-        return input.acceptToken(StartSelfClosingTag);
-      }
-      if (parent && closeOnOpen.get(parent)?.has(name)) {
-        input.acceptToken(missingCloseTag, -1);
-      } else {
-        input.acceptToken(StartTag);
-      }
+      input.acceptToken(StartTag);
     }
   },
   { contextual: true }
 );
 
 function contentTokenizer(tag: string, textToken: number, endToken: number) {
-  let lastState = 2 + tag.length;
+  const lastState = 2 + tag.length;
   return new ExternalTokenizer((input) => {
     // state means:
     // - 0 nothing matched
@@ -377,8 +317,8 @@ function contentTokenizer(tag: string, textToken: number, endToken: number) {
         break;
       }
       if (
-        (state === 0 && input.next === lessThan) ||
-        (state === 1 && input.next === slash) ||
+        (state === 0 && input.next === LESS_THAN_CHAR) ||
+        (state === 1 && input.next === SLASH_CHAR) ||
         (state >= 2 &&
           state < lastState &&
           input.next === tag.charCodeAt(state - 2))
@@ -387,7 +327,7 @@ function contentTokenizer(tag: string, textToken: number, endToken: number) {
         matchedLen++;
       } else if ((state === 2 || state === lastState) && isSpace(input.next)) {
         matchedLen++;
-      } else if (state === lastState && input.next === greaterThan) {
+      } else if (state === lastState && input.next === GREATER_THAN_CHAR) {
         if (i > matchedLen) {
           input.acceptToken(textToken, -matchedLen);
         } else {
