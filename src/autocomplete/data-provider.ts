@@ -460,12 +460,12 @@ const videoAttributes = [
   },
 ];
 
-const indeterminateAttribute: Info = {
+const indeterminateAttribute = {
   name: 'indeterminate',
   description: 'Available for type="checkbox"',
 };
 
-export const elementSpecificAttributes: Map<string, Info[]> = new Map([
+export const elementSpecificAttributes = new Map<string, Info[]>([
   ['select', [{ name: 'bind:value' }]],
   [
     'input',
@@ -527,7 +527,9 @@ const isStateCall: Test = (node) => {
   }
 
   parent = parent.parent;
-  if (!parent) return false;
+  if (!parent) {
+    return false;
+  }
 
   return (
     parent.name === 'VariableDeclaration' ||
@@ -550,7 +552,7 @@ const isStatement: Test = (node) => {
 /**
  * Returns `true` if `$props()` is valid
  */
-const isProps: Test = (node, _) => {
+const isProps: Test = (node) => {
   return (
     node.name === 'VariableName' &&
     node.parent?.name === 'VariableDeclaration' &&
@@ -622,4 +624,23 @@ export const runes = [
   { snippet: '$inspect.trace();', test: isStatement },
   { snippet: '$inspect.trace(${});', test: isStatement },
   { snippet: '$host()' },
+];
+
+export const logicBlocks = [
+  { snippet: '#if ${}}\n\n{/if', label: '#if' },
+  { snippet: '#each ${} as }\n\n{/each', label: '#each' },
+  { snippet: '#await ${} then }\n\n{/await', label: '#await then' },
+  { snippet: '#await ${}}\n\n{:then }\n\n{/await', label: '#await :then' },
+  { snippet: '#key ${}}\n\n{/key', label: '#key' },
+];
+
+export const specialTags = [
+  { snippet: '@html ${}', label: '@html' },
+  { snippet: '@debug ${}', label: '@debug' },
+  { snippet: '@const ${}', label: '@const' },
+  { snippet: '@render ${}', label: '@render' },
+];
+
+export const attributeLikeSpecialTags = [
+  { snippet: '@attach ${}', label: '@attach' },
 ];
