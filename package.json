@@ -3,12 +3,6 @@
   "description": "Svelte language support for CodeMirror6",
   "version": "6.0.0",
   "author": "Kynson Szetau (https://kynsonszetau.com/)",
-  "contributors": [
-    {
-      "name": "Brian Pool",
-      "email": "brian@repl.it"
-    }
-  ],
   "type": "module",
   "main": "dist/index.cjs",
   "exports": {
