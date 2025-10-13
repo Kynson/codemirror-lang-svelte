@@ -257,7 +257,7 @@ export const tagStart = new ExternalTokenizer(
 
         return;
       }
-      // if (stack.dialectEnabled(Dialect_noMatch)) return input.acceptToken(NoMatchStartCloseTag)
+
       for (
         let context = stack.context as ElementContext | null;
         context;
