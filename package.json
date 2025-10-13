@@ -19,7 +19,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "cm-runtests",
     "publish": "npm run build && npm publish",
     "format": "prettier src/* --write --ignore-unknown",
     "generate": "lezer-generator",
@@ -40,7 +39,6 @@
   },
   "devDependencies": {
     "@codemirror/autocomplete": "^6.0.0",
-    "@codemirror/buildhelper": "^1.0.2",
     "@codemirror/lang-css": "^6.0.1",
     "@codemirror/lang-html": "^6.2.0",
     "@codemirror/lang-javascript": "^6.1.1",
@@ -64,5 +62,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/Kynson/codemirror-lang-svelte.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Kynson/codemirror-lang-svelte/issues"
   }
 }
