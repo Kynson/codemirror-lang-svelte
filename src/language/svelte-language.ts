@@ -55,7 +55,7 @@ export const svelteLanguage = LRLanguage.define({
           const close = `${node.name}Close`;
           const first = node.firstChild;
           const last = node.lastChild;
-          if (!first || first.name !== open) {
+          if (first?.name !== open) {
             return null;
           }
           return {
