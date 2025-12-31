@@ -2,11 +2,27 @@ import { CompletionContext } from '@codemirror/autocomplete';
 import type { SyntaxNode } from '@lezer/common';
 
 type Test = (node: SyntaxNode, context: CompletionContext) => boolean;
+type CompletionType =
+  | 'class'
+  | 'constant'
+  | 'enum'
+  | 'function'
+  | 'interface'
+  | 'keyword'
+  | 'method'
+  | 'namespace'
+  | 'property'
+  | 'text'
+  | 'type'
+  | 'variable';
 
 export interface Info {
   name: string;
   description?: string;
   values?: Info[];
+  valueType?: CompletionType;
+  boost?: number;
+  deprecated?: boolean;
 }
 
 /**
@@ -111,7 +127,6 @@ export const globalEvents: Info[] = [
 ];
 
 export const svelteEvents = [
-  ...globalEvents,
   {
     name: 'onintrostart',
     description: 'Available when element has transition',
@@ -166,26 +181,26 @@ export const svelteAttributes = [
   },
 ];
 
-export const sveltekitAttributes = [
+export const sveltekitAttributes: Info[] = [
   {
     name: 'data-sveltekit-keepfocus',
     description:
       'SvelteKit-specific attribute. Currently focused element will retain focus after navigation. Otherwise, focus will be reset to the body.',
-    valueSet: 'v',
+    valueType: 'text',
     values: [{ name: 'off' }],
   },
   {
     name: 'data-sveltekit-noscroll',
     description:
       'SvelteKit-specific attribute. Will prevent scrolling after the link is clicked.',
-    valueSet: 'v',
+    valueType: 'text',
     values: [{ name: 'off' }],
   },
   {
     name: 'data-sveltekit-preload-code',
     description:
       "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
-    valueSet: 'v',
+    valueType: 'text',
     values: [
       { name: 'eager' },
       { name: 'viewport' },
@@ -198,36 +213,40 @@ export const sveltekitAttributes = [
     name: 'data-sveltekit-preload-data',
     description:
       "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
-    valueSet: 'v',
+    valueType: 'text',
     values: [{ name: 'hover' }, { name: 'tap' }, { name: 'off' }],
   },
   {
     name: 'data-sveltekit-reload',
     description:
       'SvelteKit-specific attribute. Will cause SvelteKit to do a normal browser navigation which results in a full page reload.',
-    valueSet: 'v',
+    valueType: 'text',
     values: [{ name: 'off' }],
   },
   {
     name: 'data-sveltekit-replacestate',
     description:
       'SvelteKit-specific attribute. Will replace the current `history` entry rather than creating a new one with `pushState` when the link is clicked.',
-    valueSet: 'v',
+    valueType: 'text',
     values: [{ name: 'off' }],
   },
 ];
 
-export const svelteTags = [
+export const svelteTags: (Info & { attributes: Info[] })[] = [
   {
     name: 'svelte:self',
     description:
       'Allows a component to include itself, recursively.\n\nIt cannot appear at the top level of your markup; it must be inside an if or each block to prevent an infinite loop.',
+    deprecated: true,
+    boost: -1,
     attributes: [],
   },
   {
     name: 'svelte:component',
     description:
       'Renders a component dynamically, using the component constructor specified as the this property. When the property changes, the component is destroyed and recreated.\n\nIf this is falsy, no component is rendered.',
+    deprecated: true,
+    boost: -1,
     attributes: [
       {
         name: 'this',
@@ -323,6 +342,27 @@ export const svelteTags = [
     attributes: [],
   },
   {
+    name: 'svelte:boundary',
+    description: "Boundaries allow you to 'wall off' parts of your app",
+    attributes: [
+      {
+        name: 'onerror',
+        description:
+          'An error handler, will be called with the same arguments as the `failed` snippet. This is useful for tracking the error with an error reporting service.',
+      },
+      {
+        name: 'failed',
+        description:
+          'A fail snippet, it will be rendered when an error is thrown inside the boundary, with the error and a reset function that recreates the contents.',
+      },
+      {
+        name: 'pending',
+        description:
+          'A pending snippet. It will be will be shown when the boundary is first created, and will remain visible until all the await expressions inside the boundary have resolved.',
+      },
+    ],
+  },
+  {
     name: 'svelte:head',
     description:
       'This element makes it possible to insert elements into document.head. During server-side rendering, head content exposed separately to the main html content.',
@@ -333,17 +373,49 @@ export const svelteTags = [
     description: 'Provides a place to specify per-component compiler options',
     attributes: [
       {
+        name: 'runes',
+        description: 'If true, forces a component into runes mode.',
+      },
+      {
+        name: 'namespace',
+        description: 'The namespace where this component will be used.',
+        valueType: 'text',
+        values: [
+          { name: 'html', description: 'The default.' },
+          { name: 'svg' },
+          { name: 'mathml' },
+        ],
+      },
+      {
+        name: 'customElement',
+        description:
+          'The options to use when compiling this component as a custom element. If a string is passed, it is used as the tag option',
+      },
+      {
+        name: 'css',
+        valueType: 'text',
+        values: [
+          {
+            name: 'injected',
+            description:
+              "The component will inject its styles inline: During server-side rendering, it's injected as a <style> tag in the head, during client side rendering, it's loaded via JavaScript",
+          },
+        ],
+      },
+      {
         name: 'immutable',
         description:
           'If true, tells the compiler that you promise not to mutate any objects. This allows it to be less conservative about checking whether values have changed.',
+        deprecated: true,
+        boost: -1,
         values: [
           {
-            name: '{true}',
+            name: 'true',
             description:
               'You never use mutable data, so the compiler can do simple referential equality checks to determine if values have changed',
           },
           {
-            name: '{false}',
+            name: 'false',
             description:
               'The default. Svelte will be more conservative about whether or not mutable objects have changed',
           },
@@ -351,23 +423,10 @@ export const svelteTags = [
       },
       {
         name: 'accessors',
+        deprecated: true,
+        boost: -1,
         description:
           "If true, getters and setters will be created for the component's props. If false, they will only be created for readonly exported values (i.e. those declared with const, class and function). If compiling with customElement: true this option defaults to true.",
-        values: [
-          {
-            name: '{true}',
-            description: "Adds getters and setters for the component's props",
-          },
-          {
-            name: '{false}',
-            description: 'The default.',
-          },
-        ],
-      },
-      {
-        name: 'namespace',
-        description:
-          'The namespace where this component will be used, most commonly "svg"',
       },
       {
         name: 'tag',
@@ -380,6 +439,8 @@ export const svelteTags = [
     name: 'svelte:fragment',
     description:
       'This element is useful if you want to assign a component to a named slot without creating a wrapper DOM element.',
+    deprecated: true,
+    boost: -1,
     attributes: [
       {
         name: 'slot',
@@ -387,18 +448,20 @@ export const svelteTags = [
       },
     ],
   },
-  {
-    name: 'slot',
-    description:
-      'Components can have child content, in the same way that elements can.\n\nThe content is exposed in the child component using the <slot> element, which can contain fallback content that is rendered if no children are provided.',
-    attributes: [
-      {
-        name: 'name',
-        description:
-          'Named slots allow consumers to target specific areas. They can also have fallback content.',
-      },
-    ],
-  },
+  // This never worked for the autocomplete as the HTML automcomplete already provided one, (and was filtered)
+  // Will remove after <slot> support is completely dropped, keeped for reference
+  // {
+  //   name: 'slot',
+  //   description:
+  //     'Components can have child content, in the same way that elements can.\n\nThe content is exposed in the child component using the <slot> element, which can contain fallback content that is rendered if no children are provided.',
+  //   attributes: [
+  //     {
+  //       name: 'name',
+  //       description:
+  //         'Named slots allow consumers to target specific areas. They can also have fallback content.',
+  //     },
+  //   ],
+  // },
 ];
 
 const mediaAttributes = [

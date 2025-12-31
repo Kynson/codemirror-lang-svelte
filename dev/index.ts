@@ -22,6 +22,8 @@ const testDoc = `
 
 <svelte:window />
 
+<svelte:options />
+
 <Slider
   {@attach f()}
   bind:value
