@@ -14,7 +14,7 @@ export default defineConfig({
     }),
   ],
   server: {
-    fs: { allow: ['src', 'dev'] },
+    fs: { allow: ['src', 'dev', 'index.html'] },
   },
   build: {
     lib: {
