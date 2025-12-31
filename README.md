@@ -15,7 +15,7 @@ _As some parts are partially rewritten, the behaviour is slightly different from
 ```typescript
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import { svelte } from "@replit/codemirror-lang-svelte";
+import { svelte } from "codemirror-lang-svelte";
 import { basicSetup } from 'codemirror';
 
 new EditorView({
