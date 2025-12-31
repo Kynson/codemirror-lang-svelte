@@ -3,7 +3,7 @@ import { indentNodeProp } from '@codemirror/language';
 import type { TreeIndentContext } from '@codemirror/language';
 
 function indentIfNotEndTag(context: TreeIndentContext) {
-  const endTagMatches = /^\s*(<\/)?/.exec(context.textAfter);
+  const endTagMatches = /^\s*<\//.test(context.textAfter);
 
   return (
     context.lineIndent(context.node.from) + (endTagMatches ? 0 : context.unit)
@@ -46,7 +46,7 @@ export const indentationProp = indentNodeProp.add({
   'BlockOpen BlockClose BlockInline OpenTag CloseTag SelfClosingTag': (
     context
   ) => {
-    const closeMatches = /^\s*\/?>/.exec(context.textAfter);
+    const closeMatches = /^\s*\/?>/.test(context.textAfter);
     return (
       context.column(context.node.from) + (closeMatches ? 0 : context.unit)
     );
@@ -54,7 +54,7 @@ export const indentationProp = indentNodeProp.add({
   'Interpolation DirectlyInterpolatedAttribute': (
     context: TreeIndentContext
   ) => {
-    const closeBraceMatches = /^\s*}/.exec(context.textAfter);
+    const closeBraceMatches = /^\s*}/.test(context.textAfter);
     // Not need to indent if followed by a closing brace
     return (
       context.lineIndent(context.node.from) +

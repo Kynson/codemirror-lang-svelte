@@ -4,7 +4,6 @@
 import { syntaxTree } from '@codemirror/language';
 import { EditorSelection } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import { svelteLanguage } from './svelte-language';
 
 import type { SyntaxNode } from '@lezer/common';
 import type { Text } from '@codemirror/state';
@@ -32,13 +31,20 @@ function getElementName(
 
 export const autoCloseTags = EditorView.inputHandler.of(
   (view, from, to, text) => {
+    const currentNode = syntaxTree(view.state).resolveInner(from, -1);
+    const potentialElementNode =
+      currentNode.name === 'SvelteElementType'
+        ? // SvelteElementType -> SvelteElementName -> OpenTag -> Element
+          currentNode.parent?.parent?.parent
+        : // TagName (if correct position) -> OpenTag -> Element
+          currentNode.parent?.parent;
+
     if (
       view.composing ||
       view.state.readOnly ||
       from !== to ||
       (text !== '>' && text !== '/') ||
-      // Note that this will disable auto closing using "/" inside script/style tags
-      !svelteLanguage.isActiveAt(view.state, from, -1)
+      potentialElementNode?.name !== 'Element'
     ) {
       return false;
     }
@@ -49,19 +55,25 @@ export const autoCloseTags = EditorView.inputHandler.of(
       let around = syntaxTree(state).resolveInner(head, -1);
       let name: string;
 
+      // The below node must have a parent node as they are inside a Document/ OpenTag
       if (
         around.name === 'TagName' ||
         around.name === 'ComponentName' ||
-        around.name === 'SvelteElementName' ||
         around.name === 'StartTag'
       ) {
-        // The above Token must have a parent node as they are inside a Document/ OpenTag
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         around = around.parent!;
       }
 
+      if (around.name === 'SvelteElementType') {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        around = around.parent!.parent!;
+      }
+
       name = getElementName(state.doc, around.parent, head);
       const nextChar = state.doc.sliceString(head, head + 1);
+
+      console.log('Element name:', name);
 
       if (
         text === '>' &&
