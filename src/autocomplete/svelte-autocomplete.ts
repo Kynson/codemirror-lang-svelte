@@ -24,16 +24,16 @@ import type { SyntaxNode } from '@lezer/common';
 import type { Info } from './data-provider';
 
 const blockSnippets = blocks.map(({ snippet, label }) => {
-  return snippetCompletion(snippet, { label, type: 'keyword' });
+  return snippetCompletion(snippet, { label, type: 'snippet' });
 });
 
 const specialTagSnippets = specialTags.map(({ snippet, label }) => {
-  return snippetCompletion(snippet, { label, type: 'keyword' });
+  return snippetCompletion(snippet, { label, type: 'snippet' });
 });
 
 const attributeLikeSpecialTagSnippets = attributeLikeSpecialTags.map(
   ({ snippet, label }) => {
-    return snippetCompletion(snippet, { label, type: 'keyword' });
+    return snippetCompletion(snippet, { label, type: 'snippet' });
   }
 );
 
