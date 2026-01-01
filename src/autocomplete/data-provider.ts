@@ -690,12 +690,16 @@ export const runes = [
 ];
 
 export const blocks = [
-  { snippet: '#if ${}}\n\n{/if', label: '#if' },
-  { snippet: '#each ${} as }\n\n{/each', label: '#each' },
-  { snippet: '#await ${} then }\n\n{/await', label: '#await then' },
-  { snippet: '#await ${}}\n\n{:then }\n\n{/await', label: '#await :then' },
-  { snippet: '#key ${}}\n\n{/key', label: '#key' },
-  { snippet: '#snippet ${}()}\n\n{/snippet', label: '#snippet' },
+  { snippet: '#if ${}}\n\t${}\n{/if', label: '#if' },
+  { snippet: '#each ${} as ${}}\n\t${}\n{/each', label: '#each' },
+  { snippet: '#await ${} then ${}}\n\t${}\n{/await', label: '#await then' },
+  { snippet: '#await ${} catch ${}}\n\t${}\n{/await', label: '#await catch' },
+  {
+    snippet: '#await ${}}\n\t${}\n{:then ${}}\n\t${}\n{/await',
+    label: '#await :then',
+  },
+  { snippet: '#key ${}}\n\t${}\n{/key', label: '#key' },
+  { snippet: '#snippet ${}()}\n\t${}\n{/snippet', label: '#snippet' },
 ];
 
 export const specialTags = [
