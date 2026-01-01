@@ -15,7 +15,9 @@ export { svelteParser };
 export function svelte() {
   return new LanguageSupport(svelteLanguage, [
     javascript().support,
-    javascriptLanguage.data.of({ autocomplete: completionForJavascript }),
+    javascriptLanguage.data.of({
+      autocomplete: completionForJavascript,
+    }),
     css().support,
     autoCloseTags,
     svelteLanguage.data.of({ autocomplete: svelteHtmlCompletionSource }),
