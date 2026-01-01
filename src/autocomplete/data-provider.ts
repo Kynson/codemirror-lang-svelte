@@ -186,21 +186,21 @@ export const sveltekitAttributes: Info[] = [
     name: 'data-sveltekit-keepfocus',
     description:
       'SvelteKit-specific attribute. Currently focused element will retain focus after navigation. Otherwise, focus will be reset to the body.',
-    valueType: 'text',
+    valueType: 'constant',
     values: [{ name: 'off' }],
   },
   {
     name: 'data-sveltekit-noscroll',
     description:
       'SvelteKit-specific attribute. Will prevent scrolling after the link is clicked.',
-    valueType: 'text',
+    valueType: 'constant',
     values: [{ name: 'off' }],
   },
   {
     name: 'data-sveltekit-preload-code',
     description:
       "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
-    valueType: 'text',
+    valueType: 'constant',
     values: [
       { name: 'eager' },
       { name: 'viewport' },
@@ -213,21 +213,21 @@ export const sveltekitAttributes: Info[] = [
     name: 'data-sveltekit-preload-data',
     description:
       "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
-    valueType: 'text',
+    valueType: 'constant',
     values: [{ name: 'hover' }, { name: 'tap' }, { name: 'off' }],
   },
   {
     name: 'data-sveltekit-reload',
     description:
       'SvelteKit-specific attribute. Will cause SvelteKit to do a normal browser navigation which results in a full page reload.',
-    valueType: 'text',
+    valueType: 'constant',
     values: [{ name: 'off' }],
   },
   {
     name: 'data-sveltekit-replacestate',
     description:
       'SvelteKit-specific attribute. Will replace the current `history` entry rather than creating a new one with `pushState` when the link is clicked.',
-    valueType: 'text',
+    valueType: 'constant',
     values: [{ name: 'off' }],
   },
 ];
@@ -379,7 +379,7 @@ export const svelteTags: (Info & { attributes: Info[] })[] = [
       {
         name: 'namespace',
         description: 'The namespace where this component will be used.',
-        valueType: 'text',
+        valueType: 'constant',
         values: [
           { name: 'html', description: 'The default.' },
           { name: 'svg' },
@@ -393,7 +393,7 @@ export const svelteTags: (Info & { attributes: Info[] })[] = [
       },
       {
         name: 'css',
-        valueType: 'text',
+        valueType: 'constant',
         values: [
           {
             name: 'injected',
@@ -689,12 +689,13 @@ export const runes = [
   { snippet: '$host()' },
 ];
 
-export const logicBlocks = [
+export const blocks = [
   { snippet: '#if ${}}\n\n{/if', label: '#if' },
   { snippet: '#each ${} as }\n\n{/each', label: '#each' },
   { snippet: '#await ${} then }\n\n{/await', label: '#await then' },
   { snippet: '#await ${}}\n\n{:then }\n\n{/await', label: '#await :then' },
   { snippet: '#key ${}}\n\n{/key', label: '#key' },
+  { snippet: '#snippet ${}()}\n\n{/snippet', label: '#snippet' },
 ];
 
 export const specialTags = [

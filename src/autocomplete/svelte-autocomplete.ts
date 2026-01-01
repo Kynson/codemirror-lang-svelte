@@ -9,7 +9,7 @@ import {
   sveltekitAttributes,
   svelteEvents,
   runes,
-  logicBlocks,
+  blocks,
   specialTags,
   attributeLikeSpecialTags,
   globalEvents,
@@ -23,7 +23,7 @@ import type {
 import type { SyntaxNode } from '@lezer/common';
 import type { Info } from './data-provider';
 
-const logicBlockSnippets = logicBlocks.map(({ snippet, label }) => {
+const blockSnippets = blocks.map(({ snippet, label }) => {
   return snippetCompletion(snippet, { label, type: 'keyword' });
 });
 
@@ -119,7 +119,7 @@ function completionForBlock(context: CompletionContext, node: SyntaxNode) {
       break;
     }
     case '#': {
-      return { from, to, options: logicBlockSnippets, validFor: /^#(\w)*$/ };
+      return { from, to, options: blockSnippets, validFor: /^#(\w)*$/ };
     }
     case '@': {
       const grandParentName = node.parent?.parent?.name;
@@ -142,7 +142,7 @@ function completionForBlock(context: CompletionContext, node: SyntaxNode) {
 function snippetForAttribute(attributes: Info[]) {
   return attributes.reduce<Completion[]>(
     (array, { name, valueType, description, deprecated, boost }) => {
-      const placeholder = valueType === 'text' ? '"${}"' : '{${}}';
+      const placeholder = valueType === 'constant' ? '"${}"' : '{${}}';
       const baseOptions = {
         info: description,
         boost,
@@ -198,7 +198,7 @@ const optionsForSveltekitAttributeValues = sveltekitAttributes.reduce(
         label: name,
         info: description,
         boost,
-        type: 'text',
+        type: 'constant',
       }))
     );
 
@@ -229,7 +229,7 @@ const optionsForSvelteTagAttributeValues = svelteTags.reduce(
           label: name,
           info: description,
           boost,
-          type: 'text',
+          type: 'constant',
         }))
       );
     }
