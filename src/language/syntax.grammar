@@ -353,9 +353,6 @@ Attachment {
 }
 
 @tokens {
-  "\""[@name=DoubleQuote, openedBy="\"", closedBy="\""]
-  "\'"[@name=SingleQuote, openedBy="\'", closedBy="\'"]
-  
   "{"[closedBy="}"]
   "}"[openedBy="{"]
   "("[closedBy="("]
