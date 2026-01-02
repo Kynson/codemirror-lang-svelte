@@ -10,17 +10,23 @@ import {
 } from './autocomplete/svelte-autocomplete';
 import { theme } from './autocomplete/theme';
 
+import type { Config } from './language/svelte-language';
+
 export { svelteParser };
 
-export function svelte() {
-  return new LanguageSupport(svelteLanguage, [
+export function svelte(config: Config = {}) {
+  const svelteLanguageInstance = svelteLanguage(config);
+
+  return new LanguageSupport(svelteLanguageInstance, [
     javascript().support,
     javascriptLanguage.data.of({
       autocomplete: completionForJavascript,
     }),
     css().support,
     autoCloseTags,
-    svelteLanguage.data.of({ autocomplete: svelteHtmlCompletionSource }),
+    svelteLanguageInstance.data.of({
+      autocomplete: svelteHtmlCompletionSource,
+    }),
     theme,
   ]);
 }
