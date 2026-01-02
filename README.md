@@ -31,6 +31,8 @@ svelte(config: Config): LanguageSupport
   Default: `cssLanguage.parser` from [`@codemirror/lang-css`](https://github.com/codemirror/lang-css/tree/main) \
   Useful for providing a parser with custom configs (e.g. overriding syntax highlighting)
 
+The extension also exports `svelteLanguage` [`(LRLanguage)`](https://codemirror.net/docs/ref/#language.LRLanguage) and `svelteParser` [`(LRPraser)`](https://lezer.codemirror.net/docs/ref/#lr.LRParser) for advanced usage.
+
 ### Usage
 
 ```typescript
