@@ -7,7 +7,7 @@ import {
   TextareaText,
 } from './syntax.grammar?terms';
 import { parseMixed } from '@lezer/common';
-import { parser as javascriptParser } from '@lezer/javascript';
+import { javascriptLanguage } from '@codemirror/lang-javascript';
 
 import type { Input, Parser, SyntaxNode, SyntaxNodeRef } from '@lezer/common';
 
@@ -72,9 +72,17 @@ function maybeNest(
   return null;
 }
 
-const expressionParser = javascriptParser.configure({
-  top: 'SingleExpression',
-});
+function getJavascriptExpressionParser(
+  scriptNestedConfigs: NestedLanguageConfig[]
+) {
+  for (const { attributeMatcher, parser } of scriptNestedConfigs) {
+    if (!attributeMatcher || attributeMatcher({ type: 'text/javascript' })) {
+      return parser;
+    }
+  }
+
+  return javascriptLanguage.parser;
+}
 
 export function configureNesting(tags: NestedLanguageConfig[]) {
   const script: NestedLanguageConfig[] = [];
@@ -99,6 +107,8 @@ export function configureNesting(tags: NestedLanguageConfig[]) {
       id === AsTerminatedLongExpression ||
       id === ShortExpression
     ) {
+      const expressionParser = getJavascriptExpressionParser(script);
+
       return { parser: expressionParser };
     }
     if (id === ScriptText) {

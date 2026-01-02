@@ -5,6 +5,8 @@ import { svelte, svelteParser } from '../src';
 import { printTree } from './print-lezer-tree';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { syntaxTree } from '@codemirror/language';
+import { javascriptLanguage } from '@codemirror/lang-javascript';
+import { styleTags, tags } from '@lezer/highlight';
 
 const testDoc = `
 {#unknown}
@@ -176,7 +178,17 @@ new EditorView({
     doc,
     extensions: [
       basicSetup,
-      svelte(),
+      svelte({
+        jsParser: javascriptLanguage.parser.configure({
+          props: [
+            styleTags({
+              'CallExpression/MemberExpression/PropertyName': tags.function(
+                tags.variableName
+              ),
+            }),
+          ],
+        }),
+      }),
       oneDark,
       EditorView.lineWrapping,
       syncAST,
