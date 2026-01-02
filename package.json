@@ -1,7 +1,7 @@
 {
   "name": "codemirror-lang-svelte",
   "description": "Svelte language support for CodeMirror6",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "author": "Kynson Szetau (https://kynsonszetau.com/)",
   "type": "module",
   "main": "dist/index.cjs",
