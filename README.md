@@ -36,7 +36,7 @@ svelte(config: Config): LanguageSupport
 ```typescript
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import { svelte } from "codemirror-lang-svelte";
+import { svelte } from 'codemirror-lang-svelte';
 import { basicSetup } from 'codemirror';
 import { javascriptLanguage } from '@codemirror/lang-javascript';
 import { styleTags, tags } from '@lezer/highlight';
