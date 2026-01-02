@@ -19,7 +19,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "publish": "npm run build && npm publish",
+    "prepublishOnly": "npm run build",
     "format": "prettier src/* --write --ignore-unknown",
     "generate": "lezer-generator",
     "lint": "eslint"
