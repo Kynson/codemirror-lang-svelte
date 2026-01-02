@@ -21,7 +21,7 @@ function getAttributes(elementNode: SyntaxNode, input: Input) {
   const extractedAttributes = Object.create(null) as Record<string, string>;
   const attributesNodes =
     // The firstChild is the open tag node
-    elementNode.firstChild?.getChildren('Attributes') ?? [];
+    elementNode.firstChild?.getChildren('Attribute') ?? [];
 
   for (const attribute of attributesNodes) {
     const name = attribute.getChild('AttributeName');
@@ -49,7 +49,10 @@ function maybeNest(
   input: Input,
   tags: NestedLanguageConfig[]
 ) {
-  const parent = nodeReference.node.parent;
+  const { node } = nodeReference;
+  const { from, to } = node;
+
+  const parent = node.parent;
 
   if (!parent) {
     return null;
@@ -59,7 +62,10 @@ function maybeNest(
 
   for (const tag of tags) {
     if (!tag.attributeMatcher || tag.attributeMatcher(attributes)) {
-      return { parser: tag.parser };
+      return {
+        parser: tag.parser,
+        overlay: [{ from, to }],
+      };
     }
   }
 

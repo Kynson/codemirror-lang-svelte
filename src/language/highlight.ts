@@ -7,7 +7,7 @@ export const svelteHighlighting = styleTags({
   'MismatchedCloseTag/TagName': [t.tagName, t.invalid],
   AttributeName: t.attributeName,
   UnquotedAttributeValue: t.attributeValue,
-  'DoubleQuote SingleQuote AttributeValueContent': t.attributeValue,
+  'AttributeValue AttributeValueContent': t.attributeValue,
   Is: t.definitionOperator,
   'EntityReference CharacterReference': t.character,
   Comment: t.blockComment,
