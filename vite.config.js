@@ -9,7 +9,12 @@ export default defineConfig({
   plugins: [
     LezerGrammarPlugin(),
     DTSPlugin({
-      include: ['src/index.ts', 'src/**/*.grammar', 'src/**/*.d.ts'],
+      include: [
+        'src/index.ts',
+        'src/language/svelte-language.ts',
+        'src/**/*.grammar',
+        'src/**/*.d.ts',
+      ],
       resolvers: [grammarResolver],
     }),
   ],

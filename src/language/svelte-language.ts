@@ -10,7 +10,6 @@ import { completionForMarkup } from '../autocomplete/svelte-autocomplete';
 import { indentationProp } from './indentation-prop';
 
 import type { NestedLanguageConfig } from './content';
-
 import type { LRParser } from '@lezer/lr';
 
 export interface Config {

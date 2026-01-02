@@ -12,7 +12,9 @@ import { theme } from './autocomplete/theme';
 
 import type { Config } from './language/svelte-language';
 
-export { svelteParser };
+export type { Config };
+
+export { svelteParser, svelteLanguage };
 
 export function svelte(config: Config = {}) {
   const svelteLanguageInstance = svelteLanguage(config);
