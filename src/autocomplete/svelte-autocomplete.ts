@@ -3,7 +3,7 @@ import { snippetCompletion } from '@codemirror/autocomplete';
 import { htmlCompletionSource } from '@codemirror/lang-html';
 
 import {
-  elementSpecificAttributes,
+  tagSpecificAttributes,
   svelteAttributes,
   svelteTags,
   sveltekitAttributes,
@@ -21,7 +21,7 @@ import type {
   CompletionResult,
 } from '@codemirror/autocomplete';
 import type { SyntaxNode } from '@lezer/common';
-import type { Info } from './data-provider';
+import type { TagSpec, AttributeInfo } from './data-provider';
 
 const blockSnippets = blocks.map(({ snippet, label }) => {
   return snippetCompletion(snippet, { label, type: 'snippet' });
@@ -139,30 +139,29 @@ function completionForBlock(context: CompletionContext, node: SyntaxNode) {
   return null;
 }
 
-function snippetForAttribute(attributes: Info[]) {
+function snippetForAttribute(attributes: AttributeInfo[]) {
   return attributes.reduce<Completion[]>(
-    (array, { name, valueType, description, deprecated, boost }) => {
+    (array, { label, valueType, info, deprecated, boost }) => {
       const placeholder = valueType === 'constant' ? '"${}"' : '{${}}';
       const baseOptions = {
-        info: description,
+        info,
         boost,
         detail: deprecated ? 'deprecated' : undefined,
         type: 'snippet',
       };
 
       array.push(
-        snippetCompletion(`${name}=${placeholder}`, {
+        snippetCompletion(`${label}=${placeholder}`, {
           ...baseOptions,
-          label: name,
+          label,
         })
       );
 
-      if (!name.startsWith('on')) {
+      if (!label.startsWith('on')) {
         return array;
       }
 
-      const eventAttributeWithDirective = name.replace(/^on/, 'on:');
-
+      const eventAttributeWithDirective = label.replace(/^on/, 'on:');
       array.push(
         snippetCompletion(`${eventAttributeWithDirective}=${placeholder}`, {
           ...baseOptions,
@@ -179,24 +178,57 @@ function snippetForAttribute(attributes: Info[]) {
   );
 }
 
+function snippetForTagSpecificAttribute(tagSpec: TagSpec[]) {
+  return tagSpec.reduce<Map<string, Completion[]>>(
+    (map, { label, attributes }) => {
+      if (!attributes || attributes.length === 0) {
+        return map;
+      }
+
+      map.set(label, snippetForAttribute(attributes));
+
+      return map;
+    },
+    new Map<string, Completion[]>()
+  );
+}
+
+// === Globally used options (available for all tags) ===
 const optionsForGlobalEvents = snippetForAttribute(globalEvents);
-
 const optionsForSvelteEvents = snippetForAttribute(svelteEvents);
-
 const optionsForSveltekitAttributes = snippetForAttribute(sveltekitAttributes);
-
 const optionsForSvelteAttributes = snippetForAttribute(svelteAttributes);
+
+// === Tag options ===
+const optionsForSvelteTags = svelteTags.map(
+  ({ label, deprecated, info, boost }) => ({
+    label,
+    info,
+    detail: deprecated ? 'deprecated' : undefined,
+    boost,
+    type: 'type',
+  })
+);
+
+// === Tag specific attribute options ===
+const optionsForSvelteTagAttributes =
+  snippetForTagSpecificAttribute(svelteTags);
+const optionsForTagSpecificAttributes = snippetForTagSpecificAttribute(
+  tagSpecificAttributes
+);
+
+// === Attribute value options ===
 const optionsForSveltekitAttributeValues = sveltekitAttributes.reduce(
-  (map, current) => {
-    if (!current.values) {
+  (map, { label, values }) => {
+    if (!values) {
       return map;
     }
 
     map.set(
-      current.name,
-      current.values.map(({ name, description, boost }) => ({
-        label: name,
-        info: description,
+      label,
+      values.map(({ label, info, boost }) => ({
+        label,
+        info,
         boost,
         type: 'constant',
       }))
@@ -207,14 +239,9 @@ const optionsForSveltekitAttributeValues = sveltekitAttributes.reduce(
   new Map<string, Completion[]>()
 );
 
-const optionsForSvelteTagAttributes = svelteTags.reduce((map, current) => {
-  map.set(current.name, snippetForAttribute(current.attributes));
-  return map;
-}, new Map<string, Completion[]>());
-
 const optionsForSvelteTagAttributeValues = svelteTags.reduce(
-  (map, { attributes, name }) => {
-    if (attributes.length === 0) {
+  (map, { attributes, label }) => {
+    if (!attributes || attributes.length === 0) {
       return map;
     }
 
@@ -224,10 +251,10 @@ const optionsForSvelteTagAttributeValues = svelteTags.reduce(
       }
 
       map.set(
-        `${name}/${attribute.name}`,
-        attribute.values.map(({ name, description, boost }) => ({
-          label: name,
-          info: description,
+        `${label}/${attribute.label}`,
+        attribute.values.map(({ label, info, boost }) => ({
+          label,
+          info,
           boost,
           type: 'constant',
         }))
@@ -239,14 +266,31 @@ const optionsForSvelteTagAttributeValues = svelteTags.reduce(
   new Map<string, Completion[]>()
 );
 
-const optionsForSvelteTags = svelteTags.map(
-  ({ name, deprecated, description, boost }) => ({
-    label: name,
-    info: description,
-    detail: deprecated ? 'deprecated' : undefined,
-    boost,
-    type: 'type',
-  })
+const optionsForTagSpecificAttributeValues = tagSpecificAttributes.reduce(
+  (map, { attributes, label }) => {
+    if (!attributes || attributes.length === 0) {
+      return map;
+    }
+
+    for (const attribute of attributes) {
+      if (!attribute.values) {
+        continue;
+      }
+
+      map.set(
+        `${label}/${attribute.label}`,
+        attribute.values.map(({ label, info, boost }) => ({
+          label,
+          info,
+          boost,
+          type: 'constant',
+        }))
+      );
+    }
+
+    return map;
+  },
+  new Map<string, Completion[]>()
 );
 
 function completionForAttributes(
@@ -269,6 +313,7 @@ function completionForAttributes(
     ...optionsForSveltekitAttributes,
   ];
 
+  // ??
   const elementNode = node.parent?.parent?.firstChild?.nextSibling;
   const elementName = getNodeContent(context, elementNode);
 
@@ -292,14 +337,12 @@ function completionForAttributes(
     ]);
   }
 
-  const elementSpecificAttribute = elementSpecificAttributes.get(
+  const tagSpecificAttribute = optionsForTagSpecificAttributes.get(
     elementName ?? ''
   );
 
-  if (elementNode?.name === 'TagName' && elementSpecificAttribute) {
-    const completionsAttributes = snippetForAttribute(elementSpecificAttribute);
-
-    return completion([...globalOptions, ...completionsAttributes]);
+  if (elementNode?.name === 'TagName' && tagSpecificAttribute) {
+    return completion([...globalOptions, ...tagSpecificAttribute]);
   }
 
   return completion(globalOptions);
@@ -311,27 +354,26 @@ function completionForAttributeValues(
   attributeValuesMap: Map<string, Completion[]>,
   attribute: string
 ) {
-  const options = attributeValuesMap.get(attribute);
+  const options = structuredClone(attributeValuesMap.get(attribute));
 
-  if (options) {
-    const from =
-      node.name === 'AttributeValueContent'
-        ? node.from
-        : node.prevSibling
-        ? // End quote, should not match anything (no completion will be shown)
-          node.from - 1
-        : // Skip the quote
-          node.from + 1;
-
-    return {
-      from,
-      to: context.pos,
-      options,
-      validFor: /^\w*$/,
-    };
+  if (!options) {
+    return null;
   }
 
-  return null;
+  const { from, name } = node;
+
+  if (name === 'UnquotedAttributeValue' || name === 'Is') {
+    options.map((option) => {
+      option.apply = `"${option.label}"`;
+    });
+  }
+
+  return {
+    from: name === 'Is' ? from + 1 : from,
+    to: context.pos,
+    options,
+    validFor: name === 'Is' ? /^[^\s<>='"]*$/ : /^\w*$/,
+  };
 }
 
 function completionForSvelteTags(node: SyntaxNode) {
@@ -344,19 +386,31 @@ function completionForSvelteTags(node: SyntaxNode) {
   };
 }
 
-function tryCompleteSvelteKitAttributeValues(
+function getAttributeNameOfAttributeValueNode(
   context: CompletionContext,
   node: SyntaxNode
-) {
-  const attributeNameNode = node.parent?.parent?.firstChild;
+): string | null {
+  let current = node.parent;
+  while (current && current.firstChild?.name !== 'AttributeName') {
+    current = current.parent;
+  }
+
+  const attributeNameNode = current?.firstChild;
 
   if (!attributeNameNode) {
     return null;
   }
 
-  const attributeName = getNodeContent(context, attributeNameNode);
+  return getNodeContent(context, attributeNameNode);
+}
 
-  if (!attributeName.startsWith('data-sveltekit-')) {
+function tryCompleteSvelteKitAttributeValues(
+  context: CompletionContext,
+  node: SyntaxNode
+) {
+  const attributeName = getAttributeNameOfAttributeValueNode(context, node);
+
+  if (!attributeName?.startsWith('data-sveltekit-')) {
     return null;
   }
 
@@ -372,26 +426,59 @@ function tryCompleteSvelteTagAttributeValues(
   context: CompletionContext,
   node: SyntaxNode
 ) {
-  const svelteElementTypeNode =
-    node.parent?.parent?.parent?.getChild('SvelteElementName');
+  let current = node.parent;
+  while (current && !current.getChild('SvelteElementName')) {
+    current = current.parent;
+  }
 
-  if (!svelteElementTypeNode) {
+  const svelteElementNameNode = current?.getChild('SvelteElementName');
+  console.log('Svelte Element Type Node:', svelteElementNameNode);
+
+  if (!svelteElementNameNode) {
     return null;
   }
 
-  const svelteElementName = getNodeContent(context, svelteElementTypeNode);
+  const svelteElementName = getNodeContent(context, svelteElementNameNode);
 
-  const attributeNameNode = node.parent?.parent?.firstChild;
-  if (!attributeNameNode) {
+  const attributeName = getAttributeNameOfAttributeValueNode(context, node);
+  if (!attributeName) {
     return null;
   }
-  const attributeName = getNodeContent(context, attributeNameNode);
 
   return completionForAttributeValues(
     context,
     node,
     optionsForSvelteTagAttributeValues,
     `${svelteElementName}/${attributeName}`
+  );
+}
+
+function tryCompleteTagSpecificAttributeValues(
+  context: CompletionContext,
+  node: SyntaxNode
+) {
+  let current = node.parent;
+  while (current && !current.getChild('TagName')) {
+    current = current.parent;
+  }
+
+  const tagNameNode = current?.getChild('TagName');
+  if (!tagNameNode) {
+    return null;
+  }
+
+  const tagName = getNodeContent(context, tagNameNode);
+
+  const attributeName = getAttributeNameOfAttributeValueNode(context, node);
+  if (!attributeName) {
+    return null;
+  }
+
+  return completionForAttributeValues(
+    context,
+    node,
+    optionsForTagSpecificAttributeValues,
+    `${tagName}/${attributeName}`
   );
 }
 
@@ -419,7 +506,11 @@ export function completionForMarkup(
 
   // In order to prevent putting too much logic here, use a simple heuristic here
   // and try completing the attribute value
-  if (nodeBefore.parent?.name === 'AttributeValue') {
+  if (
+    nodeBefore.name === 'AttributeValueContent' ||
+    nodeBefore.name === 'UnquotedAttributeValue' ||
+    nodeBefore.name === 'Is'
+  ) {
     const svelteKitAttributeCompletionResult =
       tryCompleteSvelteKitAttributeValues(context, nodeBefore);
 
@@ -432,6 +523,13 @@ export function completionForMarkup(
 
     if (svelteTagAttributeCompletionResult) {
       return svelteTagAttributeCompletionResult;
+    }
+
+    const tagSpecificAttributeCompletionResult =
+      tryCompleteTagSpecificAttributeValues(context, nodeBefore);
+
+    if (tagSpecificAttributeCompletionResult) {
+      return tagSpecificAttributeCompletionResult;
     }
   }
 
